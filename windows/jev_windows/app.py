@@ -15,6 +15,7 @@ from .config import (
     save_deepseek_api_key,
 )
 from .deepseek_client import DeepSeekError, generate_suggestions
+from .dpi import enable_dpi_awareness, ui_scale
 from .jev_api import judge
 from .models import Analysis, Rect
 from .safety import assert_safe_chat
@@ -47,6 +48,16 @@ NEED_LABELS = {
     "care": "被重视",
     "nothing": "无需追加",
 }
+
+
+def px(value: float) -> int:
+    """Scale a pixel measurement for the current display DPI (see jev_windows.dpi).
+
+    Once the process declares DPI awareness every coordinate is physical, so
+    hard-coded pixel sizes have to be scaled by hand or the window looks tiny on a
+    150%+ display.
+    """
+    return int(round(value * ui_scale()))
 
 
 class CalibrationOverlay(tk.Toplevel):
@@ -113,7 +124,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(parent)
         self.parent_app = parent
         self.title("设置")
-        self.geometry("560x470")
+        self.geometry(f"{px(560)}x{px(470)}")
         self.transient(parent)
         self.grab_set()
         self.columnconfigure(1, weight=1)
@@ -189,8 +200,11 @@ class JevApp(tk.Tk):
         self.active_window = None
         self.is_analyzing = False
         self.title(f"Jev 微信助手 · Windows v{__version__}")
-        self.geometry("500x760+40+60")
-        self.minsize(450, 680)
+        # Fonts in points follow Tk's scaling, which we pin to the real DPI; window
+        # and wrap sizes are plain pixels and need explicit scaling.
+        self.tk.call("tk", "scaling", ui_scale() * 96.0 / 72.0)
+        self.geometry(f"{px(500)}x{px(760)}+{px(40)}+{px(60)}")
+        self.minsize(px(450), px(680))
         self.attributes("-topmost", True)
         self.configure(bg="#f8fafc")
         self._build_ui()
@@ -216,17 +230,17 @@ class JevApp(tk.Tk):
         self.analyze_button.pack(fill="x", padx=16, pady=8, ipady=7)
 
         self.status = tk.StringVar(value="请先设置 Jev API 密钥并框选聊天区")
-        ttk.Label(self, textvariable=self.status, wraplength=430).pack(fill="x", padx=18, pady=4)
+        ttk.Label(self, textvariable=self.status, wraplength=px(430)).pack(fill="x", padx=18, pady=4)
 
         self.summary = ttk.LabelFrame(self, text="Jev 判断", padding=12)
         self.summary.pack(fill="x", padx=16, pady=8)
         self.summary_text = tk.StringVar(value="尚未分析")
-        ttk.Label(self.summary, textvariable=self.summary_text, wraplength=410, justify="left").pack(fill="x")
+        ttk.Label(self.summary, textvariable=self.summary_text, wraplength=px(410), justify="left").pack(fill="x")
 
         self.preview = ttk.LabelFrame(self, text="识别到的最近消息", padding=10)
         self.preview.pack(fill="x", padx=16, pady=8)
         self.preview_text = tk.StringVar(value="—")
-        ttk.Label(self.preview, textvariable=self.preview_text, wraplength=410, justify="left").pack(fill="x")
+        ttk.Label(self.preview, textvariable=self.preview_text, wraplength=px(410), justify="left").pack(fill="x")
 
         self.suggestions = ttk.LabelFrame(self, text="DeepSeek 建议回复（仅供复制，不自动发送）", padding=10)
         self.suggestions.pack(fill="both", expand=True, padx=16, pady=(8, 16))
@@ -365,7 +379,7 @@ class JevApp(tk.Tk):
     def _show_suggestion_message(self, text: str) -> None:
         for widget in self.suggestions.winfo_children():
             widget.destroy()
-        ttk.Label(self.suggestions, text=text, wraplength=430, justify="left").pack(fill="x", pady=4)
+        ttk.Label(self.suggestions, text=text, wraplength=px(430), justify="left").pack(fill="x", pady=4)
 
     def _show_suggestions(self, replies: list[str]) -> None:
         for widget in self.suggestions.winfo_children():
@@ -373,7 +387,7 @@ class JevApp(tk.Tk):
         for index, reply in enumerate(replies, start=1):
             row = ttk.Frame(self.suggestions)
             row.pack(fill="x", pady=5)
-            ttk.Label(row, text=f"{index}. {reply}", wraplength=360, justify="left").pack(
+            ttk.Label(row, text=f"{index}. {reply}", wraplength=px(360), justify="left").pack(
                 side="left", fill="x", expand=True
             )
             ttk.Button(row, text="复制", command=lambda text=reply: self._copy_reply(text)).pack(
@@ -392,6 +406,8 @@ class JevApp(tk.Tk):
 
 
 def main() -> None:
+    # Declare DPI awareness before Tk exists; harmless when run.pyw already did it.
+    enable_dpi_awareness()
     JevApp().mainloop()
 
 
