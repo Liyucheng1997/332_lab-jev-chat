@@ -8,7 +8,7 @@ Windows 版在电脑版微信旁运行，不读取微信数据库、不注入微
 
 - Windows 10/11（x64）
 - 电脑版微信进程名 `Weixin.exe` 或 `WeChat.exe`
-- Python 3.11（仅源码运行/构建需要）
+- Python 3.11 或 3.12（仅源码运行/构建需要；依赖 rapidocr-onnxruntime 要求 Python <3.13，3.13/3.14 不可用）
 - TypeSafe/Jev API Key
 - DeepSeek API Key（可选；未配置时仍可只做 Jev 判断）
 

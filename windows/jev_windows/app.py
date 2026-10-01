@@ -75,6 +75,7 @@ class CalibrationOverlay(tk.Toplevel):
             font=("Microsoft YaHei UI", 14, "bold"),
         )
         self.bind("<Escape>", lambda _: self.destroy())
+        self.focus_force()
         if mode == "rect":
             self.canvas.bind("<Button-1>", self._start_drag)
             self.canvas.bind("<B1-Motion>", self._drag)
